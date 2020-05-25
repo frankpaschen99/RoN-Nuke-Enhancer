@@ -1,0 +1,21 @@
+// nuke_mod.bhs
+
+	  /*||||*\
+	 // RoN  \\
+	//  Nuke  \\
+   // Enhancer \\
+   \*||||||||||*/
+   
+// By Frankie
+// 2020
+
+// This script aims to make nuclear arms in Rise of Nations: Extended Edition much more deadly.
+// Basically, ICBMs will devastate cities and render them completely useless for a duration of time (probably 10 minutes)
+// All units and buildings will be destroyed, including any NEW units that enter the area, and any new buildings you
+// attempt to build. (Sort of simulating nuclear fallout)
+
+scenario {
+	run_once {
+		print_game_msg("RoN Nuke Enhancer by Fromkie is running!");
+	}
+}
