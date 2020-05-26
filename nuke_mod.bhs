@@ -18,10 +18,8 @@
 
 include "helper_library.bhs"
 
-scenario {
-	// 2D array that will (hopefully) contain pairs of city IDs as well as their healths. We will continuously check for rapid reductions in hit points which likely indicates it was just hit
-	// with an ICBM. There's no actual trigger for nuke events so we need to do it this way hahaha
-	int[][] bldg_health = [[0]];
+scenario {	
+	static int[] nuked_cities;
 	
 	run_once {
 		print_game_msg("RoN Nuke Enhancer by Fromkie is running!");
@@ -56,46 +54,48 @@ scenario {
 	}
 	trigger city_nuked() {
 		
-		
 	}
 	// This function will be triggered on a timer and will check for and identify cities that have just been nuked
 	trigger nuke_watch(timer_expired("nuke_watch_timer")) {
+		// 2D array that will (hopefully) contain pairs of city IDs as well as their healths. We will continuously check for rapid reductions in hit points which likely indicates it was just hit
+		// with an ICBM. There's no actual trigger for nuke events so we need to do it this way hahaha
+		static int[][] bldg_health_backup = [[0]];
+		static int[][] bldg_health = [[0]];
 		
 		print_game_msg("Now watching for nukes!");
 		set_timer("nuke_watch_timer", 3);
 		enable_trigger("nuke_watch");
-		
-		
-		/* check for nuked cities here
-		for (int i = 0; i < bldg_health.length; ++i)
-		{
-			for (int j = 0; j < bldg_health[i].length; ++j) {
-				
-			}
-		}*/
-		//print_game_msg("bldg_health.length = " + bldg_health.size);
-		
+
 		int base = 0;
-		// for every nation,
-		for (int i = 1; i < 8; ++i) {	// i = 1
+		for (int i = 1; i < 8; ++i) {
 			for (int j = 0; j < num_cities(i); ++j) {
-				string city_name = find_city_name(i);	// first city of first nation
+				string city_name = find_city_name(i);
 				int city_id = find_city_id(city_name);
 				int city_hp = object_health(i, city_id);
 				bldg_health[base + j][0] = city_id;
 				bldg_health[base + j][1] = city_hp;	// base will equal the # of cities that we just found
+				bldg_health[base + j][2] = i;		// base will equal the # of cities that we just found
 													// lets say Nation #1 has two cities, it will go bldg_health[0][0], [1][0], and set base to 2. On the next call it will go bldg_health[2+0], [2+1]
 													// this is so we aren't overwriting values in the array.
-				
-				print_game_msg("Nation #" + i + "'s City #" + city_id + " has " + city_hp + " hit points.");
 			}
 			base += num_cities(i);
 		}
-		print_game_msg("length = " + bldg_health.length);
-		print_game_msg("length = " + bldg_health[0][1]);	// health of first city
-		print_game_msg("length = " + bldg_health[0][0]);	// id of first city
-		
 
+		// check health difference
+		if (bldg_health_backup.length > 1)  {
+			for (int a = 0; a < bldg_health.length; a++) {
+				int difference = bldg_health_backup[a][1] - bldg_health[a][1];
+				
+				print_game_msg("Health difference for city #" + bldg_health[a][0] + " of Nation #" + bldg_health[a][2] + " = " + difference);
+			}
+		}
+		
+		// copy bldg health to backup
+		for (int x = 0; x < bldg_health.length; x++) {
+			for (int y = 0; y < bldg_health[x].length; y++) {
+				bldg_health_backup[x][y] = bldg_health[x][y];
+			}
+		}
 	}
 }
 
