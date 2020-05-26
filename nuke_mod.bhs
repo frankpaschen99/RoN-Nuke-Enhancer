@@ -33,7 +33,7 @@ scenario {
 			if (at_least_age(i, 6)) {
 				print_game_msg("Nation # " + i + " has reached the Modern Age!");
 				stop_timer("agecheck");
-				disable_trigger("check_age")
+				disable_trigger("check_age");
 				age_reached = true;
 				
 				// trigger main script here
