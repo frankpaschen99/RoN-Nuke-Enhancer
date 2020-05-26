@@ -6,3 +6,11 @@ labels {
 float scenario circumference(r) {
 	return 2 * PI * r;
 }
+
+// Simple absolute value function
+int scenario abs(int a) {
+	if (a < 0) {
+		return a * -1;
+	}
+	return a;
+}

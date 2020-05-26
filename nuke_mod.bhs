@@ -62,7 +62,6 @@ scenario {
 		static int[][] bldg_health_backup = [[0]];
 		static int[][] bldg_health = [[0]];
 		
-		print_game_msg("Now watching for nukes!");
 		set_timer("nuke_watch_timer", 3);
 		enable_trigger("nuke_watch");
 
@@ -83,10 +82,16 @@ scenario {
 
 		// check health difference
 		if (bldg_health_backup.length > 1)  {
-			for (int a = 0; a < bldg_health.length; a++) {
-				int difference = bldg_health_backup[a][1] - bldg_health[a][1];
+			for (int x = 0; x < bldg_health.length; x++) {
+				int old_health = bldg_health_backup[x][1];
+				int new_health = bldg_health[x][1];
+				int difference = abs(new_health - old_health);
 				
-				print_game_msg("Health difference for city #" + bldg_health[a][0] + " of Nation #" + bldg_health[a][2] + " = " + difference);
+				// print_game_msg("Health difference for city #" + bldg_health[x][0] + " of Nation #" + bldg_health[x][2] + " = " + difference);
+				
+				if (difference > 50) {		// building lost more than half its health in 3 seconds, it was most likely nuked
+					print_game_msg("Nation #" + bldg_health[x][2] + "'s City #" + bldg_health[x][0] + " has been attacked with a nuclear weapon!");
+				}
 			}
 		}
 		
