@@ -14,8 +14,6 @@
 // All units and buildings will be destroyed, including any NEW units that enter the area, and any new buildings you
 // attempt to build. (Sort of simulating nuclear fallout)
 
-// NOTE: do not check for 0% health, check for 1%. Cities start repairing themselves after being nuked
-
 include "helper_library.bhs"
 
 scenario {	
@@ -80,8 +78,8 @@ scenario {
 			base += num_cities(i);
 		}
 
-		// check health difference
-		if (bldg_health_backup.length > 1)  {
+		// check health difference. Weird array size comparison is because in the for loop above, a new city could be added to the array BEFORE its added to the backup (in the for loop under this one)
+		if (bldg_health_backup.length > 1 && (bldg_health.length == bldg_health_backup.length))  {
 			for (int x = 0; x < bldg_health.length; x++) {
 				int old_health = bldg_health_backup[x][1];
 				int new_health = bldg_health[x][1];
@@ -91,6 +89,8 @@ scenario {
 				
 				if (difference > 50) {		// building lost more than half its health in 3 seconds, it was most likely nuked
 					print_game_msg("Nation #" + bldg_health[x][2] + "'s City #" + bldg_health[x][0] + " has been attacked with a nuclear weapon!");
+					
+					// start nuclear fallout script for that city 
 				}
 			}
 		}
