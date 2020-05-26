@@ -1,0 +1,11 @@
+labels {
+	PI = 3.14159;
+}
+
+scenario myFunction {
+	return 0;
+}
+
+float scenario circumference(r) {		// 2(pi)(r)
+	return 2 * PI * r;
+}
