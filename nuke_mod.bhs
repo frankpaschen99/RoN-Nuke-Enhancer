@@ -14,45 +14,66 @@
 // All units and buildings will be destroyed, including any NEW units that enter the area, and any new buildings you
 // attempt to build. (Sort of simulating nuclear fallout)
 
+// NOTE: do not check for 0% health, check for 1%. Cities start repairing themselves after being nuked
+
 include "helper_library.bhs"
 
 scenario {
-	// you can declare variables here, all triggers will have access
+	// 2D array that will (hopefully) contain pairs of city IDs as well as their healths. We will continuously check for rapid reductions in hit points which likely indicates it was just hit
+	// with an ICBM. There's no actual trigger for nuke events so we need to do it this way hahaha
+	int[][] bldg_health = [[0]];
 	
-	// ...
-
 	run_once {
 		print_game_msg("RoN Nuke Enhancer by Fromkie is running!");
-		set_timer("agecheck", 5);	// TODO: Increase duration
+		set_timer("age_check_timer", 5);	// TODO: Increase duration
 	}
 	
-	trigger check_age(timer_expired("agecheck")) {		// this function will be triggered when the check_age timer expires (every x seconds)
+	// Trigger that checks if any player has reached the Modern Age. This is done because we don't need the script running for most of the game.
+	// The parameter is the condition which will trigger this function, and here it is the expiration of the age_check_timer
+	trigger check_age(timer_expired("age_check_timer")) {		
 		int age_reached = false;
 		
 		for (int i = 1; i < 8; ++i) {
 			if (at_least_age(i, 6)) {
 				print_game_msg("Nation # " + i + " has reached the Modern Age!");
-				stop_timer("agecheck");
+				stop_timer("age_check_timer");
 				disable_trigger("check_age");
 				age_reached = true;
 				
 				// trigger main script here
-				set_timer("nuke_watch", 3);
+				set_timer("nuke_watch_timer", 3);
 			}
 		}
 		if (age_reached == false) {
 			enable_trigger("check_age");
-			set_timer("agecheck", 5);	// TODO: Increase duration
+			set_timer("age_check_timer", 5);	// TODO: Increase duration
 		}
 	}
-	// 2D array that will (hopefully) contain pairs of city IDs as well as their healths. We will continuously check for rapid reductions in hit points which likely indicates it was just hit
-	// with an ICBM. There's no actual trigger for nuke events so we need to do it this way hahaha
-	int[][] bldg_health;
-	trigger nuke_watch(timer_expired("nuke_watch")) {
+	trigger nuke_fallout(timer_expired("fallout_timer")) {
+		
+		
+		enable_trigger("nuke_fallout");
+	}
+	trigger city_nuked() {
+		
+		
+	}
+	// This function will be triggered on a timer and will check for and identify cities that have just been nuked
+	trigger nuke_watch(timer_expired("nuke_watch_timer")) {
 		
 		print_game_msg("Now watching for nukes!");
-		set_timer("nuke_watch", 3);
+		set_timer("nuke_watch_timer", 3);
 		enable_trigger("nuke_watch");
+		
+		
+		/* check for nuked cities here
+		for (int i = 0; i < bldg_health.length; ++i)
+		{
+			for (int j = 0; j < bldg_health[i].length; ++j) {
+				
+			}
+		}*/
+		//print_game_msg("bldg_health.length = " + bldg_health.size);
 		
 		int base = 0;
 		// for every nation,
@@ -65,12 +86,16 @@ scenario {
 				bldg_health[base + j][1] = city_hp;	// base will equal the # of cities that we just found
 													// lets say Nation #1 has two cities, it will go bldg_health[0][0], [1][0], and set base to 2. On the next call it will go bldg_health[2+0], [2+1]
 													// this is so we aren't overwriting values in the array.
-				base++;
 				
 				print_game_msg("Nation #" + i + "'s City #" + city_id + " has " + city_hp + " hit points.");
 			}
-			
+			base += num_cities(i);
 		}
+		print_game_msg("length = " + bldg_health.length);
+		print_game_msg("length = " + bldg_health[0][1]);	// health of first city
+		print_game_msg("length = " + bldg_health[0][0]);	// id of first city
+		
+
 	}
 }
 
