@@ -33,7 +33,7 @@ scenario {
 			if (at_least_age(i, 6)) {
 				print_game_msg("Nation # " + i + " has reached the Modern Age!");
 				stop_timer("agecheck");
-				disable_trigger("check_age")
+				disable_trigger("check_age");
 				age_reached = true;
 				
 				// trigger main script here
@@ -45,14 +45,45 @@ scenario {
 			set_timer("agecheck", 5);	// TODO: Increase duration
 		}
 	}
+	// 2D array that will (hopefully) contain pairs of city IDs as well as their healths. We will continuously check for rapid reductions in hit points which likely indicates it was just hit
+	// with an ICBM. There's no actual trigger for nuke events so we need to do it this way hahaha
+	int[][] bldg_health;
 	trigger nuke_watch(timer_expired("nuke_watch")) {
-		
-		// 2D array that will (hopefully) contain pairs of city IDs as well as their healths. We will continuously check for rapid reductions in hit points which likely indicates it was just hit
-		// with an ICBM. There's no actual trigger for nuke events so we need to do it this way hahaha
-		int[][] bldg_health;
 		
 		print_game_msg("Now watching for nukes!");
 		set_timer("nuke_watch", 3);
 		enable_trigger("nuke_watch");
+		
+		int base = 0;
+		// for every nation,
+		for (int i = 1; i < 8; ++i) {	// i = 1
+			for (int j = 0; j < num_cities(i); ++j) {
+				string city_name = find_city_name(i);	// first city of first nation
+				int city_id = find_city_id(city_name);
+				int city_hp = object_health(i, city_id);
+				bldg_health[base + j][0] = city_id;
+				bldg_health[base + j][1] = city_hp;	// base will equal the # of cities that we just found
+													// lets say Nation #1 has two cities, it will go bldg_health[0][0], [1][0], and set base to 2. On the next call it will go bldg_health[2+0], [2+1]
+													// this is so we aren't overwriting values in the array.
+				base++;
+				
+				print_game_msg("Nation #" + i + "'s City #" + city_id + " has " + city_hp + " hit points.");
+			}
+			
+		}
 	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
