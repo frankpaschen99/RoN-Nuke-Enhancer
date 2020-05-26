@@ -17,7 +17,42 @@
 include "helper_library.bhs"
 
 scenario {
+	// you can declare variables here, all triggers will have access
+	
+	// ...
+
 	run_once {
 		print_game_msg("RoN Nuke Enhancer by Fromkie is running!");
+		set_timer("agecheck", 5);	// TODO: Increase duration
+	}
+	
+	trigger check_age(timer_expired("agecheck")) {		// this function will be triggered when the check_age timer expires (every x seconds)
+		int age_reached = false;
+		
+		for (int i = 1; i < 8; ++i) {
+			if (at_least_age(i, 6)) {
+				print_game_msg("Nation # " + i + " has reached the Modern Age!");
+				stop_timer("agecheck");
+				disable_trigger("check_age")
+				age_reached = true;
+				
+				// trigger main script here
+				set_timer("nuke_watch", 3);
+			}
+		}
+		if (age_reached == false) {
+			enable_trigger("check_age");
+			set_timer("agecheck", 5);	// TODO: Increase duration
+		}
+	}
+	trigger nuke_watch(timer_expired("nuke_watch")) {
+		
+		// 2D array that will (hopefully) contain pairs of city IDs as well as their healths. We will continuously check for rapid reductions in hit points which likely indicates it was just hit
+		// with an ICBM. There's no actual trigger for nuke events so we need to do it this way hahaha
+		int[][] bldg_health;
+		
+		print_game_msg("Now watching for nukes!");
+		set_timer("nuke_watch", 3);
+		enable_trigger("nuke_watch");
 	}
 }
