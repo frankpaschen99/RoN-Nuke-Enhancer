@@ -14,3 +14,16 @@ int scenario abs(int a) {
 	}
 	return a;
 }
+
+// Will return a city's name from its building ID. Nation ID also required
+String scenario city_name_from_id(int who, int b_id) {
+	for (int i = 0; i < num_cities(who); ++i) {
+		string city_name = find_city_name(who);
+		int city_id = find_city_id(city_name);
+		if (city_id == b_id) {
+			return city_name;
+		}
+	}
+	
+	return "[city_name_from_id failed!]";
+}
