@@ -27,3 +27,45 @@ String scenario city_name_from_id(int who, int b_id) {
 	
 	return "[city_name_from_id failed!]";
 }
+
+// Struct that contains data about cities. Keeps things nice and organized, no multidimensional arrays either.
+struct City
+{
+  int nation;
+  string name;
+  int last_hp;
+  int hp;
+  int uid;
+};
+
+// Array helper functions
+
+// Returns the INDEX of the city we're looking for by name
+int scenario get_element_by_name(ref City[] arr, string _name) {
+	for (int k = 0; k < arr.length; k++) {
+		if (arr[k].name == _name) {
+			return k;
+		}
+	}
+	return -1;	// failed
+}
+
+// Push an element onto the end of an array. 'ref' keyword just means the argument is being passed by reference in Big Huge Script. (these comments are for my future self)
+void scenario add_city(ref City[] arr, City data) {
+	
+	// check if city exists in array
+	int index = get_element_by_name(arr, data.name);
+	
+	if (index >= 0)  {	// city already exists, update it
+		arr[index].name = data.name;
+		arr[index].nation = data.nation;
+		arr[index].hp = data.hp;
+	} else {	// add it otherwise
+		arr[arr.length] = data;
+	}
+}
+
+
+
+
+
