@@ -22,7 +22,9 @@ labels {
 	// Number of seconds between Modern Age check calls. Default = 5
 	AGE_CHECK_TIMER_DURATION = 5,
 	// How often nukes are checked for. Determines one "cycle". Default = 3
-	NUKE_WATCH_TIMER_DURATION = 3
+	NUKE_WATCH_TIMER_DURATION = 3,
+	// How long cities are affected by nuclear fallout. Default = 600 (10 mins)
+	FALLOUT_TIME_SECS = 600
 }
 
 scenario {	
@@ -88,7 +90,7 @@ scenario {
 		for (int m = 0; m < city_list.length; m++) {
 			int old_health = city_list[m].last_hp;
 			int new_health = city_list[m].hp;
-			int difference = abs(new_health - old_health);
+			int difference = absl_int(new_health - old_health);
 			
 			if (difference > HEALTH_DIFF_THRESHOLD) {		// building lost more than half its health in 3 seconds, it was most likely nuked
 					print_game_msg("Nation #" + city_list[m].nation + "'s City of " + city_list[m].name + " has been attacked with a nuclear weapon!");

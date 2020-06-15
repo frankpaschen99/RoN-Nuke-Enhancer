@@ -2,19 +2,6 @@ labels {
 	PI = 3.14159
 }
 
-// just a test
-float scenario circumference(r) {
-	return 2 * PI * r;
-}
-
-// Simple absolute value function
-int scenario abs(int a) {
-	if (a < 0) {
-		return a * -1;
-	}
-	return a;
-}
-
 // Will return a city's name from its building ID. Nation ID also required
 String scenario city_name_from_id(int who, int b_id) {
 	for (int i = 0; i < num_cities(who); ++i) {
@@ -36,7 +23,8 @@ struct City
   int last_hp;
   int hp;
   int uid;
-};
+  int time_nuked;	// The gametime in minutes that the city was nuked. We will check all nuked cities regularly and compare this value to the current gametime.
+};					// if cur_time - time_nuked >= 10, then reset time_nuked and stop the fallout effect
 
 // Array helper functions
 
@@ -64,3 +52,6 @@ void scenario add_city(ref City[] arr, City data) {
 		arr[arr.length] = data;
 	}
 }
+
+// Note: we may want to implement our own Timer system because per the scripting manual: "Setting too many timers can cause them not to fire."
+// I'm going to use the built-in timers at first, but if it becomes a problem I'll write my own system. time_min and time_sec will be useful functions for that.
