@@ -16,12 +16,21 @@
 
 include "helper_library.bhs"
 
+labels {
+	// This value determines the amount of hit points that a building has to lose in one cycle to be considered "nuked". Default = 50
+	HEALTH_DIFF_THRESHOLD = 50,
+	// Number of seconds between Modern Age check calls. Default = 5
+	AGE_CHECK_TIMER_DURATION = 5,
+	// How often nukes are checked for. Determines one "cycle". Default = 3
+	NUKE_WATCH_TIMER_DURATION = 3
+}
+
 scenario {	
 	static int[] nuked_cities;
 	
 	run_once {
 		print_game_msg("RoN Nuke Enhancer by Fromkie is running! Waiting for Modern Age...");
-		set_timer("age_check_timer", 5);	// TODO: Increase duration
+		set_timer("age_check_timer", AGE_CHECK_TIMER_DURATION);	// TODO: Increase duration
 	}
 	
 	// Trigger that checks if any player has reached the Modern Age. This is done because we don't need the script running for most of the game.
@@ -37,12 +46,12 @@ scenario {
 				age_reached = true;
 				
 				// trigger main script here
-				set_timer("nuke_watch_timer", 3);
+				set_timer("nuke_watch_timer", NUKE_WATCH_TIMER_DURATION);
 			}
 		}
 		if (age_reached == false) {
 			enable_trigger("check_age");
-			set_timer("age_check_timer", 5);	// TODO: Increase duration
+			set_timer("age_check_timer", AGE_CHECK_TIMER_DURATION);	// TODO: Increase duration
 		}
 	}
 	trigger nuke_fallout(timer_expired("fallout_timer")) {
@@ -56,7 +65,7 @@ scenario {
 		// Array of City objects. Updated with each new city built
 		static City[] city_list;
 		
-		set_timer("nuke_watch_timer", 3);
+		set_timer("nuke_watch_timer", NUKE_WATCH_TIMER_DURATION);
 		enable_trigger("nuke_watch");
 
 		// populate city_list with City structs
@@ -81,7 +90,7 @@ scenario {
 			int new_health = city_list[m].hp;
 			int difference = abs(new_health - old_health);
 			
-			if (difference > 50) {		// building lost more than half its health in 3 seconds, it was most likely nuked
+			if (difference > HEALTH_DIFF_THRESHOLD) {		// building lost more than half its health in 3 seconds, it was most likely nuked
 					print_game_msg("Nation #" + city_list[m].nation + "'s City of " + city_list[m].name + " has been attacked with a nuclear weapon!");
 					
 					// start nuclear fallout script for that city (maybe an array of timers, some sort of timer management object?)

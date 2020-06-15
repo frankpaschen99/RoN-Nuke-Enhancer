@@ -64,8 +64,3 @@ void scenario add_city(ref City[] arr, City data) {
 		arr[arr.length] = data;
 	}
 }
-
-
-
-
-
