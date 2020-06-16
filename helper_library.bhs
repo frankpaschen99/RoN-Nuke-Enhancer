@@ -1,5 +1,7 @@
+// helper_library.bhs
+
 labels {
-	PI = 3.14159
+	
 }
 
 // Will return a city's name from its building ID. Nation ID also required
@@ -18,11 +20,11 @@ String scenario city_name_from_id(int who, int b_id) {
 // Struct that contains data about cities. Keeps things nice and organized, no multidimensional arrays either.
 struct City
 {
-  int nation;
+  int nation;		// owner 1-8
   string name;
-  int last_hp;
-  int hp;
-  int uid;
+  int last_hp;		// health from last iteration
+  int hp;			// most recent health
+  int id;			// building ID
   int time_nuked;	// The gametime in minutes that the city was nuked. We will check all nuked cities regularly and compare this value to the current gametime.
 };					// if cur_time - time_nuked >= 10, then reset time_nuked and stop the fallout effect
 
@@ -38,7 +40,44 @@ int scenario get_element_by_name(ref City[] arr, string _name) {
 	return -1;	// failed
 }
 
+// Damage all buildings and units in a city. Takes a City struct and a damage % per call
+void scenario damage_all_in_city(City c, int dmg_percent, int dmg_radius) {
+	set_object_health(c.nation, c.id, 1);	// keep city at 1% health for duration
+
+	// this is really ugly but its the only way i could get it working because find_build_at_city NEVER returns 0 or -1. It just loops around back to the capital.
+	int first = find_build_at_city(c.nation, c.name, "", 1); // call it once to skip the city and to start looping at the 2nd building
+	int cur_bldg = 0;
+	while (cur_bldg != first) {		// first = 2000, then cur_bldg = 2001, 2002, 2003..., WRAP AROUND 2000 -> stop loop
+		cur_bldg = find_build_at_city(c.nation, c.name, "", 1);
+		
+		if (cur_bldg != c.id) {
+			//destroy_building(c.nation, cur_bldg);
+			damage_object(c.nation, cur_bldg, dmg_percent);
+			//print_game_msg("Damaged building " + cur_bldg + " in " + c.name);
+		}
+	}
+	
+	// for every unit in nation
+	for (int i = 0; i < num_units(c.nation); i++) {
+		int unit_id = find_all_unit(c.nation, "");
+		// check if unit is within city bounds
+		
+		for (int j = 1; j < 9; j++) { // this loop allows us to check for all nations units within the fallout radius
+			if (object_near_build(j, unit_id, c.nation, c.id, dmg_radius)) {
+				if (object_health(j, unit_id) <= 20) {	// preserve death animations
+					kill_unit_anim(j, unit_id, 2);
+				} else {
+					damage_object(j, unit_id, dmg_percent);
+				}
+			}
+		}
+		
+	}
+}
+
 // Push an element onto the end of an array. 'ref' keyword just means the argument is being passed by reference in Big Huge Script. (these comments are for my future self)
+// This has the potential to create duplicate cities because it is only checking if a city exists by name, but cities can be renamed. This doesn't actually
+// cause problems, it only leaves an object sitting in the array that will never be updated or accessed again
 void scenario add_city(ref City[] arr, City data) {
 	
 	// check if city exists in array
@@ -48,6 +87,7 @@ void scenario add_city(ref City[] arr, City data) {
 		arr[index].name = data.name;
 		arr[index].nation = data.nation;
 		arr[index].hp = data.hp;
+		arr[index].id = data.id;
 	} else {	// add it otherwise
 		arr[arr.length] = data;
 	}

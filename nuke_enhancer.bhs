@@ -16,22 +16,32 @@
 
 include "helper_library.bhs"
 
+// You may fuck with these as you please
 labels {
 	// This value determines the amount of hit points that a building has to lose in one cycle to be considered "nuked". Default = 50
 	HEALTH_DIFF_THRESHOLD = 50,
-	// Number of seconds between Modern Age check calls. Default = 5
+	// Number of seconds between Modern Age check calls. Default = 5 seconds
 	AGE_CHECK_TIMER_DURATION = 5,
-	// How often nukes are checked for. Determines one "cycle". Default = 3
+	// How often nukes are checked for. Determines one "cycle". Default = 3 seconds
 	NUKE_WATCH_TIMER_DURATION = 3,
-	// How long cities are affected by nuclear fallout. Default = 600 (10 mins)
-	FALLOUT_TIME_SECS = 600
+	// How long cities are affected by nuclear fallout in minutes. Default = 600 seconds
+	FALLOUT_TIME_SECS = 600,
+	// Don't touch this. Default = 30
+	NUKE_FALLOUT_TIMER_DURATION = 5,
+	// How much units/buildings within the fallout zone are damaged each cycle (%). Default = 34
+	DAMAGE_PCT_PER_CYCLE = 34,
+	// Radius of fallout effects from city center. Measured in tiles, apparently
+	FALLOUT_EFFECT_RADIUS = 15
 }
 
 scenario {	
-	static int[] nuked_cities;
+	// Array of City objects. Updated with each new city built
+	static City[] city_list;
 	
 	run_once {
-		print_game_msg("RoN Nuke Enhancer by Fromkie is running! Waiting for Modern Age...");
+		set_game_msg_color("GREEN");
+		print_game_msg("Fromkie's Nuke Enhancement Script is running! Standing by for Modern Age...");
+		set_game_msg_color("WHITE");
 		set_timer("age_check_timer", AGE_CHECK_TIMER_DURATION);	// TODO: Increase duration
 	}
 	
@@ -49,6 +59,7 @@ scenario {
 				
 				// trigger main script here
 				set_timer("nuke_watch_timer", NUKE_WATCH_TIMER_DURATION);
+				set_timer("fallout_timer", NUKE_FALLOUT_TIMER_DURATION);
 			}
 		}
 		if (age_reached == false) {
@@ -57,22 +68,33 @@ scenario {
 		}
 	}
 	trigger nuke_fallout(timer_expired("fallout_timer")) {
-		enable_trigger("nuke_fallout");
-	}
-	trigger city_nuked() {
+		set_game_msg_color("GREEN");
 		
+		// This will run continuously, checking for cities that had their "nuked" flag set, and will create the nuclear fallout effects for those cities
+		set_timer("fallout_timer", NUKE_FALLOUT_TIMER_DURATION);
+		enable_trigger("nuke_fallout");
+		
+		for (int i = 0; i < city_list.length; i++) {
+			if ( (city_list[i].time_nuked >= 0) && (time_sec() - city_list[i].time_nuked < FALLOUT_TIME_SECS) ) {
+				// city has been nuked and it has been less than 10 minutes... Destroy all buildings + kill all units
+				damage_all_in_city(city_list[i], DAMAGE_PCT_PER_CYCLE, FALLOUT_EFFECT_RADIUS);
+			}
+			if ( city_list[i].time_nuked >= 0 && (time_sec() - city_list[i].time_nuked > FALLOUT_TIME_SECS)) {
+				city_list[i].time_nuked = -1;
+				print_game_msg(city_list[i].name + " is now safe to enter!");
+			}
+		}
+		set_game_msg_color("WHITE");
 	}
 	// This function will be triggered on a timer and will check for and identify cities that have just been nuked
 	trigger nuke_watch(timer_expired("nuke_watch_timer")) {
-		// Array of City objects. Updated with each new city built
-		static City[] city_list;
-		
+		set_game_msg_color("GREEN");
 		set_timer("nuke_watch_timer", NUKE_WATCH_TIMER_DURATION);
 		enable_trigger("nuke_watch");
 
 		// populate city_list with City structs
 		for (int i = 1; i < 9; ++i) {	// i < 9 because it's 1-8. Duh.
-			for (int j = 0; j < num_cities(i); ++j) {
+			for (int j = 0; j < num_cities(i); j++) {
 				string city_name = find_city_name(i);
 				int city_id = find_city_id(city_name);
 				int city_hp = object_health(i, city_id);
@@ -80,8 +102,10 @@ scenario {
 				City c;
 				c.nation = i;
 				c.name = city_name;
+				c.id = city_id;
 				c.last_hp = 100;
 				c.hp = city_hp;
+				c.time_nuked = -1;
 				
 				add_city(city_list, c);
 			}
@@ -93,9 +117,9 @@ scenario {
 			int difference = absl_int(new_health - old_health);
 			
 			if (difference > HEALTH_DIFF_THRESHOLD) {		// building lost more than half its health in 3 seconds, it was most likely nuked
-					print_game_msg("Nation #" + city_list[m].nation + "'s City of " + city_list[m].name + " has been attacked with a nuclear weapon!");
+					print_game_msg("Nation #" + city_list[m].nation + "'s City of " + city_list[m].name + " has been attacked with a nuclear weapon! Nuclear fallout is now in effect!");
 					
-					// start nuclear fallout script for that city (maybe an array of timers, some sort of timer management object?)
+					city_list[m].time_nuked = time_sec();
 			}
 		}
 		
@@ -103,5 +127,7 @@ scenario {
 		for (int n = 0; n < city_list.length; n++) {
 			city_list[n].last_hp = city_list[n].hp;
 		}
+		set_game_msg_color("WHITE");
 	}
 }
+// Give money to these people -> https://www.artsbusinesscollaborative.org/asp-products/black-trans-protestors-emergency-fund/
