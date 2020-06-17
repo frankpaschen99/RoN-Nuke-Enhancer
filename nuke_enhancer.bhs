@@ -21,7 +21,7 @@ labels {
 	// Number of seconds between Modern Age check calls. Default = 5 seconds
 	AGE_CHECK_TIMER_DURATION = 5,
 	// How often nukes are checked for, and damage is dealt to irradiated units. Determines one "cycle". Default = 1 seconds
-	NUKE_WATCH_TIMER_DURATION = 1,
+	NUKE_WATCH_TIMER_DURATION = 2,
 	// How long cities are affected by nuclear fallout in minutes. Default = 300 seconds
 	FALLOUT_TIME_SECS = 300,
 	// How much units/buildings within the fallout zone are damaged each cycle (%). Default = 34
@@ -74,36 +74,36 @@ scenario {
 				c.hp = city_hp;
 				c.time_nuked = -1;
 				
+				c.num_bldgs = num_buildings_in_city(c);
+				c.num_bldgs_last = -1;
+				
+				//print_game_msg("num bldgs in " + c.name + ": " + c.num_bldgs);
+			
 				add_city(city_list, c);
 			}
 		}
-
-		for (int m = 0; m < city_list.length; m++) {
-			if (city_list[m].last_hp >= 0) {
-				int old_health = city_list[m].last_hp;
-				int new_health = city_list[m].hp;
-				int difference = absl_int(old_health - new_health);
-				
-				if (difference > HEALTH_DIFF_THRESHOLD) {
-					print_game_msg("Nation #" + city_list[m].nation + "'s City of " + city_list[m].name + " has been attacked with a nuclear weapon! Nuclear fallout is now in effect!");
-					
-					city_list[m].time_nuked = time_sec();
-				}
-			}
-		}
-
+		
 		for (int k = 0; k < city_list.length; k++) {
-			if ( (city_list[k].time_nuked >= 0) && (time_sec() - city_list[k].time_nuked < FALLOUT_TIME_SECS) ) {
-				damage_all_in_city(city_list[k], DAMAGE_PCT_PER_CYCLE, FALLOUT_EFFECT_RADIUS);
-			}
-			if ( city_list[k].time_nuked >= 0 && (time_sec() - city_list[k].time_nuked > FALLOUT_TIME_SECS)) {
-				city_list[k].time_nuked = -1;
-				print_game_msg(city_list[k].name + " is now safe to enter!");
+			if (city_list[k].last_hp >= 0) {
+				int prob = was_nuked(city_list[k]);
+				if (prob >= 50) {
+					print_game_msg("Nation #" + city_list[k].nation + "'s City of " + city_list[k].name + " has been attacked with a nuclear weapon (Probability " + prob + "%)! Nuclear fallout is now in effect!");
+					
+					city_list[k].time_nuked = time_sec();
+				}
+				if ( (city_list[k].time_nuked >= 0) && (time_sec() - city_list[k].time_nuked < FALLOUT_TIME_SECS) ) {
+					damage_all_in_city(city_list[k], DAMAGE_PCT_PER_CYCLE, FALLOUT_EFFECT_RADIUS);
+				}
+				if ( city_list[k].time_nuked >= 0 && (time_sec() - city_list[k].time_nuked > FALLOUT_TIME_SECS)) {
+					city_list[k].time_nuked = -1;
+					print_game_msg(city_list[k].name + " is now safe to enter!");
+				}
 			}
 		}
 		
 		for (int l = 0; l < city_list.length; l++) {
 			city_list[l].last_hp = city_list[l].hp;
+			city_list[l].num_bldgs_last = city_list[l].num_bldgs;
 		}
 	}
 }

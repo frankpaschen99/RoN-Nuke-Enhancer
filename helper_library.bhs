@@ -12,11 +12,13 @@ struct City
   int hp;
   int id;
   int time_nuked;
+  int num_bldgs_last;
+  int num_bldgs;
 };
 
-int scenario get_element_by_id(ref City[] arr, City c) {
+int scenario get_city_index(ref City[] arr, City c) {
 	for (int k = 0; k < arr.length; k++) {
-		if (arr[k].id == c.id && arr[k].nation == c.nation) {
+		if (arr[k].name == c.name && (arr[k].nation == c.nation)) {
 			return k;
 		}
 	}
@@ -61,7 +63,83 @@ void scenario add_city(ref City[] arr, City data) {
 		arr[index].nation = data.nation;
 		arr[index].hp = data.hp;
 		arr[index].id = data.id;
+		arr[index].num_bldgs = data.num_bldgs;
 	} else {
 		arr[arr.length] = data;
 	}
 }
+
+int scenario num_buildings_in_city(City c) {
+	int first = find_build_at_city(c.nation, c.name, "", 1); // call it once to skip the city and to start looping at the 2nd building
+	int cur_bldg = 0;
+	int count = 0;
+	while (cur_bldg != first) {
+		cur_bldg = find_build_at_city(c.nation, c.name, "", 1);
+		
+		if (cur_bldg != c.id) {
+			count++;
+		}
+	}
+	return count;
+}
+
+int scenario was_nuked(City c) {
+	int probability = 0;
+	// few things we're going to look at to determine if a city was nuked.
+	// 1. Damage - How much damage did the city lose since the last cycle?
+	// 2. Hostile nations - What age are they in? Do they have nuclear technology?
+	// 3. Buildings - Did the city lose any buildings since the last call? How many?
+	// 4. Most importantly - where there any hostile units within the city radius? if so, it likely was NOT nuked -> probability way down
+	
+	// city lost 50% of its health
+	if (absl_int(c.last_hp - c.hp) > 30) {
+		probability += 36;
+		
+		// they are at war and the enemy is in info age
+		for (int i = 1; i < 9; i++) {
+			if (i != c.nation) {	// skip own nation
+				if (have_war(c.nation, i) && get_current_age(i) == 7) {
+					probability += 8;
+					break;
+				}
+			}
+		}
+		// they lost buildings. +2% probability per building lost
+		if (c.num_bldgs_last - c.num_bldgs > 0) {
+			probability += 2 * (c.num_bldgs_last - c.num_bldgs);
+		}
+		
+		// check for hostiles in city bounds
+		// if there ARE units in the city, probability goes down 2% for every unit found
+		// if there are NONE, probability goes up 30% 
+		int hostile_count = 0;
+		for (int k = 1; k < 9; k++) {
+			if (k != c.nation) {
+				// for every unit in that nation
+				for (int j = 0; j < num_units(i); j++) {
+					int unit_id = find_all_unit(k, "");
+					// check if near city that has been nuked
+					if (object_near_build(k, unit_id, c.nation, c.id, 15)) {
+						hostile_count++;
+						probability -= 5;
+					}
+				}
+			}
+		}
+		if (hostile_count == 0) {
+			probability += 30;
+		}
+	}
+	
+	return probability;
+}
+
+
+
+
+
+
+
+
+
+
