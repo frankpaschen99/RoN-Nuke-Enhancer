@@ -17,7 +17,7 @@ include "helper_library.bhs"
 // You may fuck with these as you please
 labels {
 	// This value determines the amount of hit points that a building has to lose in one cycle to be considered "nuked". Default = 50
-	HEALTH_DIFF_THRESHOLD = 50,
+	HEALTH_DIFF_THRESHOLD = 30,
 	// Number of seconds between Modern Age check calls. Default = 5 seconds
 	AGE_CHECK_TIMER_DURATION = 5,
 	// How often nukes are checked for, and damage is dealt to irradiated units. Determines one "cycle". Default = 1 seconds
@@ -35,8 +35,8 @@ scenario {
 	
 	run_once {
 		set_game_msg_color("GREEN");
-		print_game_msg("Fromkie's Nuke Enhancement Script is running! Standing by for Modern Age...");
-		set_timer("age_check_timer", AGE_CHECK_TIMER_DURATION);	// TODO: Increase duration
+		print_game_msg("Fromkie's Nuke Enhancement Script [v1.0.1] is running! Standing by for Modern Age...");
+		set_timer("age_check_timer", AGE_CHECK_TIMER_DURATION);	
 	}
 	trigger check_age(timer_expired("age_check_timer")) {		
 		int age_reached = false;
@@ -85,7 +85,7 @@ scenario {
 		
 		for (int k = 0; k < city_list.length; k++) {
 			if (city_list[k].last_hp >= 0) {
-				int prob = was_nuked(city_list[k]);
+				int prob = was_nuked(city_list[k], HEALTH_DIFF_THRESHOLD);
 				if (prob >= 50) {
 					print_game_msg("Nation #" + city_list[k].nation + "'s City of " + city_list[k].name + " has been attacked with a nuclear weapon (Probability " + prob + "%)! Nuclear fallout is now in effect!");
 					
