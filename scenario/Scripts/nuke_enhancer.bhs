@@ -27,7 +27,7 @@ labels {
 	// How much units/buildings within the fallout zone are damaged each cycle (%). Default = 34
 	DAMAGE_PCT_PER_CYCLE = 12,
 	// Radius of fallout effects from city center. Measured in tiles, apparently
-	FALLOUT_EFFECT_RADIUS = 15
+	FALLOUT_EFFECT_RADIUS = 25
 }
 
 scenario {	

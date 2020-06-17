@@ -108,7 +108,7 @@ int scenario was_nuked(City c, int h) {
 				for (int j = 0; j < num_units(i); j++) {
 					int unit_id = find_all_unit(k, "");
 					// check if near city that has been nuked
-					if (object_near_build(k, unit_id, c.nation, c.id, 20) || (object_near_build(k, unit_id, c.nation, c.id, 50) && unit_category(k, unit_id) == "Naval")) {
+					if (object_near_build(k, unit_id, c.nation, c.id, 25) || (object_near_build(k, unit_id, c.nation, c.id, 60) && unit_category(k, unit_id) == "Naval")) {
 						hostile_count++;
 						probability -= 5;
 					}
