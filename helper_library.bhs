@@ -4,19 +4,6 @@ labels {
 	
 }
 
-// Will return a city's name from its building ID. Nation ID also required
-String scenario city_name_from_id(int who, int b_id) {
-	for (int i = 0; i < num_cities(who); ++i) {
-		string city_name = find_city_name(who);
-		int city_id = find_city_id(city_name);
-		if (city_id == b_id) {
-			return city_name;
-		}
-	}
-	
-	return "[city_name_from_id failed!]";
-}
-
 // Struct that contains data about cities. Keeps things nice and organized, no multidimensional arrays either.
 struct City
 {
@@ -58,11 +45,13 @@ void scenario damage_all_in_city(City c, int dmg_percent, int dmg_radius) {
 	}
 	
 	// for every unit in nation
-	for (int i = 0; i < num_units(c.nation); i++) {
+	for (int j = 1; j < 9; j++) {
+	
 		int unit_id = find_all_unit(c.nation, "");
 		// check if unit is within city bounds
 		
-		for (int j = 1; j < 9; j++) { // this loop allows us to check for all nations units within the fallout radius
+		 // this loop allows us to check for all nations units within the fallout radius
+		for (int i = 0; i < num_units(c.nation); i++) {
 			if (object_near_build(j, unit_id, c.nation, c.id, dmg_radius)) {
 				if (object_health(j, unit_id) <= 20) {	// preserve death animations
 					kill_unit_anim(j, unit_id, 2);
@@ -92,6 +81,3 @@ void scenario add_city(ref City[] arr, City data) {
 		arr[arr.length] = data;
 	}
 }
-
-// Note: we may want to implement our own Timer system because per the scripting manual: "Setting too many timers can cause them not to fire."
-// I'm going to use the built-in timers at first, but if it becomes a problem I'll write my own system. time_min and time_sec will be useful functions for that.
