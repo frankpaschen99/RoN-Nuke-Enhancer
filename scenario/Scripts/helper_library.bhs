@@ -87,8 +87,8 @@ int scenario was_nuked(City c, int h) {
 	int probability = 0;
 
 	if (absl_int(c.last_hp - c.hp) > h) {
-		probability += 36;
-	
+		probability += 50;
+		
 		for (int i = 1; i < 9; i++) {
 			if (i != c.nation) {	// skip own nation
 				if (have_war(c.nation, i) && get_current_age(i) == 7) {
@@ -97,8 +97,9 @@ int scenario was_nuked(City c, int h) {
 				}
 			}
 		}
-		if (c.num_bldgs_last - c.num_bldgs > 0) {
-			probability += 2 * (c.num_bldgs_last - c.num_bldgs);
+		int num_bldgs_lost = c.num_bldgs_last - c.num_bldgs;
+		if (num_bldgs_lost > 0) {
+			probability += 2 * (num_bldgs_lost);
 		}
 		
 		int hostile_count = 0;
@@ -107,20 +108,32 @@ int scenario was_nuked(City c, int h) {
 				// for every unit in that nation
 				for (int j = 0; j < num_units(i); j++) {
 					int unit_id = find_all_unit(k, "");
-					// check if near city that has been nuked
-					if (object_near_build(k, unit_id, c.nation, c.id, 25) || (object_near_build(k, unit_id, c.nation, c.id, 60) && unit_category(k, unit_id) == "Naval")) {
+					// check if within attack range of city that has been "nuked"
+					if (object_near_build(k, unit_id, c.nation, c.id, 20) && unit_category(k, unit_id) == "Artillery") {	// rocket artillery have an attack range of 16 tiles tiles 	
 						hostile_count++;
-						probability -= 5;
-					}
+						probability -= 2;
+					} else if (object_near_build(k, unit_id, c.nation, c.id, 35) && unit_category(k, unit_id) == "Naval") {	// advanced battleships have an attack range of 26 tiles
+						probability -= 2;
+						hostile_count++;
+					}/*else if (object_near_build(k, unit_id, c.nation, c.id, 20)) {
+						hostile_count++;
+						probability -= 1;
+					}*/
 				}
 			}
 		}
 		if (hostile_count == 0) {
-			probability += 30;
+			probability += 40;
 		}
+		
+		print_game_msg("City of " + c.name + " was attacked! Nuke probability: " + probability + "%!");
+	}
+	if (probability > 100) {
+		return 100;
+	} else {
+		return probability;
 	}
 	
-	return probability;
 }
 
 

@@ -17,7 +17,7 @@ include "helper_library.bhs"
 // You may fuck with these as you please
 labels {
 	// This value determines the amount of hit points that a building has to lose in one cycle to be considered "nuked". Default = 50
-	HEALTH_DIFF_THRESHOLD = 30,
+	HEALTH_DIFF_THRESHOLD = 35,
 	// Number of seconds between Modern Age check calls. Default = 5 seconds
 	AGE_CHECK_TIMER_DURATION = 5,
 	// How often nukes are checked for, and damage is dealt to irradiated units. Determines one "cycle". Default = 1 seconds
@@ -87,7 +87,7 @@ scenario {
 			if (city_list[k].last_hp >= 0) {
 				int prob = was_nuked(city_list[k], HEALTH_DIFF_THRESHOLD);
 				if (prob >= 50) {
-					print_game_msg("Nation #" + city_list[k].nation + "'s City of " + city_list[k].name + " has been attacked with a nuclear weapon (Probability " + prob + "%)! Nuclear fallout is now in effect!");
+					// TODO: reenable this print_game_msg("Nation #" + city_list[k].nation + "'s City of " + city_list[k].name + " has been attacked with a nuclear weapon (Probability " + prob + "%)! Nuclear fallout is now in effect!");
 					
 					city_list[k].time_nuked = time_sec();
 				}
