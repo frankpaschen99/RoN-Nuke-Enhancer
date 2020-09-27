@@ -14,15 +14,45 @@ struct City
   int time_nuked;
   int num_bldgs_last;
   int num_bldgs;
+  int uid;
 };
 
-int scenario get_city_index(ref City[] arr, City c) {
-	for (int k = 0; k < arr.length; k++) {
-		if (arr[k].name == c.name && (arr[k].nation == c.nation)) {
-			return k;
+// this almost certainly works
+void scenario array_push(ref City[] arr, ref int index, City c) {
+	arr[index] = c;
+	index = index + 1;
+}
+
+// this almost certainly works 
+void scenario update_array(ref City[] arr, int index, City data) {
+	arr[index].name = data.name;
+	arr[index].nation = data.nation;
+	arr[index].hp = data.hp;
+	arr[index].id = data.id;
+	arr[index].num_bldgs = data.num_bldgs;
+}
+
+// this almost certainly works - issue was with g_index in add_city passing by value, 
+// meaning array_push was never actually incrementing the index counter
+int scenario get_city_index(ref City[] arr, City data) {
+	for (int i = 0; i < arr.length; i++) {
+		if ((arr[i].id == data.id) && (arr[i].nation == data.nation)) {
+			return i;
 		}
 	}
 	return -1;	// failed
+}
+
+void scenario add_city(ref City[] arr, City data, ref int g_index) {
+	int index = get_city_index(arr, data);
+	
+	// update city if it exists
+	if (index >= 0) {
+		update_array(arr, index, data);
+	} else {
+		// TODO this is new code
+		array_push(arr, g_index, data);
+	}
 }
 
 void scenario damage_all_in_city(City c, int dmg_percent, int dmg_radius) {
@@ -38,12 +68,9 @@ void scenario damage_all_in_city(City c, int dmg_percent, int dmg_radius) {
 		}
 	}
 	
-	// for every nation
 	for (int i = 1; i < 9; i++) {
-		// for every unit in that nation
 		for (int j = 0; j < num_units(i); j++) {
 			int unit_id = find_all_unit(i, "");
-			// check if near city that has been nuked
 			if (object_near_build(i, unit_id, c.nation, c.id, dmg_radius)) {
 				if (object_health(i, unit_id) <= 20) {	// preserve death animations
 					kill_unit_anim(i, unit_id, 2);
@@ -52,20 +79,6 @@ void scenario damage_all_in_city(City c, int dmg_percent, int dmg_radius) {
 				}
 			}
 		}
-	}
-}
-
-void scenario add_city(ref City[] arr, City data) {
-	int index = get_city_index(arr, data);
-	
-	if (index >= 0)  {
-		arr[index].name = data.name;
-		arr[index].nation = data.nation;
-		arr[index].hp = data.hp;
-		arr[index].id = data.id;
-		arr[index].num_bldgs = data.num_bldgs;
-	} else {
-		arr[arr.length] = data;
 	}
 }
 
@@ -83,65 +96,67 @@ int scenario num_buildings_in_city(City c) {
 	return count;
 }
 
-int scenario was_nuked(City c, int h) {
-	int probability = 0;
-
-	if (absl_int(c.last_hp - c.hp) > h) {
-		probability += 50;
-		
-		for (int i = 1; i < 9; i++) {
-			if (i != c.nation) {	// skip own nation
-				if (have_war(c.nation, i) && get_current_age(i) == 7) {
-					probability += 8;
-					break;
-				}
-			}
-		}
-		int num_bldgs_lost = c.num_bldgs_last - c.num_bldgs;
-		if (num_bldgs_lost > 0) {
-			probability += 2 * (num_bldgs_lost);
-		}
-		
-		int hostile_count = 0;
-		for (int k = 1; k < 9; k++) {
-			if (k != c.nation) {
-				// for every unit in that nation
-				for (int j = 0; j < num_units(i); j++) {
-					int unit_id = find_all_unit(k, "");
-					// check if within attack range of city that has been "nuked"
-					if (object_near_build(k, unit_id, c.nation, c.id, 20) && unit_category(k, unit_id) == "Artillery") {	// rocket artillery have an attack range of 16 tiles tiles 	
-						hostile_count++;
-						probability -= 2;
-					} else if (object_near_build(k, unit_id, c.nation, c.id, 35) && unit_category(k, unit_id) == "Naval") {	// advanced battleships have an attack range of 26 tiles
-						probability -= 2;
-						hostile_count++;
-					}/*else if (object_near_build(k, unit_id, c.nation, c.id, 20)) {
-						hostile_count++;
-						probability -= 1;
-					}*/
-				}
-			}
-		}
-		if (hostile_count == 0) {
-			probability += 40;
-		}
-		
-		print_game_msg("City of " + c.name + " was attacked! Nuke probability: " + probability + "%!");
+int scenario was_damaged(City c, int h) {
+	if ((c.last_hp > c.hp) && (c.last_hp - c.hp) > h) {
+		return 1;
 	}
-	if (probability > 100) {
-		return 100;
-	} else {
-		return probability;
-	}
-	
+	return -1;
 }
 
-
-
-
-
-
-
-
-
-
+// future: maybe also check for num units in city lost? citizens, enemy/friendly military, etc.
+// maybe as a proportion? like >70% lost is more probably a nuke
+float scenario was_nuked(City c, int h) {
+	float probability = 50;
+		
+	for (int i = 1; i < 9; i++) {
+		if (i != c.nation) {	// skip own nation
+			if (have_war(c.nation, i) && get_current_age(i) == 7) {
+				probability += 8;
+				break;
+			}
+		}
+	}
+	c.num_bldgs = num_buildings_in_city(c);
+	int num_bldgs_lost = c.num_bldgs_last - c.num_bldgs;
+	if (num_bldgs_lost > 0) {
+		probability += 3 * (num_bldgs_lost);
+	}
+	
+	int hostile_count = 0;
+	for (int k = 1; k < 9; k++) {
+		if (k != c.nation) {
+			// for every unit in that nation
+			for (int j = 0; j < num_units(k); j++) {
+				int unit_id = find_all_unit(k, "");
+				if (object_near_build(k, unit_id, c.nation, c.id, 20) && unit_category(k, unit_id) == "Artillery") {	// rocket artillery have an attack range of 16 tiles tiles 	
+					hostile_count++;
+					probability -= 2.5;
+				}
+				if (object_near_build(k, unit_id, c.nation, c.id, 30) && unit_category(k, unit_id) == "Naval") {	// advanced battleships have an attack range of 26 tiles
+					probability -= 2;
+					hostile_count++;
+				} 
+				if (object_near_build(k, unit_id, c.nation, c.id, 20) && unit_category(k, unit_id) == "Air") {
+					probability -= 2;
+					hostile_count++;
+				}
+				if (object_near_build(k, unit_id, c.nation, c.id, 20) && unit_category(k, unit_id) == "Foot") {
+					probability -= 0.5;
+					hostile_count++;
+				}
+			}
+		}
+	}
+	if (hostile_count == 0) {
+		probability += 40;
+	}
+	
+	if (probability > 100) {
+		probability = 100;
+	} else if (probability < 0) {
+		probability = 0;
+	}
+	print_game_msg("[DEBUG] City of " + c.name + " was attacked! Nuke probability: " + probability + "%!");
+	return probability;
+	
+}

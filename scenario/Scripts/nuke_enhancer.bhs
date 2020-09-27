@@ -12,30 +12,60 @@
 // This script aims to make nuclear arms in Rise of Nations: Extended Edition much more deadly.
 // Basically, ICBMs will devastate cities and render them completely useless for a duration of time
 
+/*
+TODO
+
+probably system -> track # of units lost per cycle
+more error checking, check for crazy values that shouldnt be possible
+
+one possible error im envisioning occurs when a city is captured by another nation. Does the city ID change? Do we need a unique ID system?
+The nation ownership certainly changes, and that would create a new element in the array. I think a unique ID system would be best, it doesnt have to
+be complicated. Just number them by the order they were created using the GLOBAL_ARR_COUNT variable.
+*/
+
 include "helper_library.bhs"
 
+// TODO reset these values
 // You may fuck with these as you please
 labels {
-	// This value determines the amount of hit points that a building has to lose in one cycle to be considered "nuked". Default = 50
-	HEALTH_DIFF_THRESHOLD = 35,
-	// Number of seconds between Modern Age check calls. Default = 5 seconds
+	// This value determines the %HP that a building has to lose in one cycle to be considered "nuked". Default = 40
+	HEALTH_DIFF_THRESHOLD = 40,
+	// Number of seconds between Modern Age check calls. Default = 5 seconds	TODO: increase default. no need to be so quick
 	AGE_CHECK_TIMER_DURATION = 5,
-	// How often nukes are checked for, and damage is dealt to irradiated units. Determines one "cycle". Default = 1 seconds
-	NUKE_WATCH_TIMER_DURATION = 2,
+	// How often nukes are checked for, and damage is dealt to irradiated units. Determines one "cycle". Default = 2 seconds
+	NUKE_WATCH_TIMER_DURATION = 4,
 	// How long cities are affected by nuclear fallout in minutes. Default = 300 seconds
-	FALLOUT_TIME_SECS = 300,
-	// How much units/buildings within the fallout zone are damaged each cycle (%). Default = 34
+	FALLOUT_TIME_SECS = 180,
+	// How much units/buildings within the fallout zone are damaged each cycle (%). Default = 12
 	DAMAGE_PCT_PER_CYCLE = 12,
-	// Radius of fallout effects from city center. Measured in tiles, apparently
-	FALLOUT_EFFECT_RADIUS = 25
+	// Radius of fallout effects from city center, measured in tiles
+	FALLOUT_EFFECT_RADIUS = 20,
+	
+	// for me
+	VER = "1.0.7"
 }
 
 scenario {	
-	static City[] city_list;
+	// Weird hack to make sure memory allocates properly. Arrays apparently don't work like C in this scripting language :\
+	City preac;
+	preac.name = "preallocated";
+	preac.id = -1;
+	preac.nation = -1;
+	preac.uid = -1;
 	
+	static City[] cities_arr = [
+	preac, preac, preac, preac, preac, preac, preac, preac, 
+	preac, preac, preac, preac, preac, preac, preac, preac, 
+	preac, preac, preac, preac, preac, preac, preac, preac, 
+	preac, preac, preac, preac, preac, preac, preac, preac, 
+	preac, preac, preac, preac, preac, preac, preac, preac, 
+	preac, preac, preac, preac, preac, preac, preac, preac, 
+	preac, preac, preac, preac, preac, preac, preac, preac];
+	
+	static GLOBAL_ARR_COUNT = 0;
 	run_once {
 		set_game_msg_color("GREEN");
-		print_game_msg("Fromkie's Nuke Enhancement Script [v1.0.1] is running! Standing by for Modern Age...");
+		print_game_msg("Fromkie's Nuke Enhancement Script [v"+VER+"] is running! Standing by for Modern Age...");
 		set_timer("age_check_timer", AGE_CHECK_TIMER_DURATION);	
 	}
 	trigger check_age(timer_expired("age_check_timer")) {		
@@ -53,7 +83,7 @@ scenario {
 		}
 		if (age_reached == false) {
 			enable_trigger("check_age");
-			set_timer("age_check_timer", AGE_CHECK_TIMER_DURATION);	// TODO: Increase duration
+			set_timer("age_check_timer", AGE_CHECK_TIMER_DURATION);
 		}
 	}
 	trigger nuke_watch(timer_expired("nuke_watch_timer")) {
@@ -70,41 +100,44 @@ scenario {
 				c.nation = i;
 				c.name = city_name;
 				c.id = city_id;
+				c.uid = GLOBAL_ARR_COUNT;	// unique id based on order of creation (helpful for city capture/assimilation)
 				c.last_hp = -1;
 				c.hp = city_hp;
 				c.time_nuked = -1;
 				
 				c.num_bldgs = num_buildings_in_city(c);
 				c.num_bldgs_last = -1;
-				
-				//print_game_msg("num bldgs in " + c.name + ": " + c.num_bldgs);
 			
-				add_city(city_list, c);
+				add_city(cities_arr, c, GLOBAL_ARR_COUNT);
 			}
 		}
-		
-		for (int k = 0; k < city_list.length; k++) {
-			if (city_list[k].last_hp >= 0) {
-				int prob = was_nuked(city_list[k], HEALTH_DIFF_THRESHOLD);
-				if (prob >= 50) {
-					// TODO: reenable this print_game_msg("Nation #" + city_list[k].nation + "'s City of " + city_list[k].name + " has been attacked with a nuclear weapon (Probability " + prob + "%)! Nuclear fallout is now in effect!");
+
+		for (int k = 0; k < GLOBAL_ARR_COUNT; k++) {
+			if (cities_arr[k].last_hp != -1 && was_damaged(cities_arr[k], HEALTH_DIFF_THRESHOLD) && cities_arr[k].time_nuked == -1) {
+				float prob = was_nuked(cities_arr[k], HEALTH_DIFF_THRESHOLD);
+				if (prob >= 50.0) {
+					print_game_msg("Nation #" + cities_arr[k].nation + "'s City of " + cities_arr[k].name + " has been attacked with a nuclear weapon (Probability " + prob + "%)! Nuclear fallout is now in effect!");
+					print_game_msg("[DEBUG] CIT_NAME=" + cities_arr[k].name + "|CIT_ID=" + cities_arr[k].id + "|CIT_UID=" + cities_arr[k].uid + "|CIT_HPCUR=" + cities_arr[k].hp + "|CIT_HPLAST="
+					+ cities_arr[k].last_hp + "|CIT_NUM_BLD=" + cities_arr[k].num_bldgs + " |CIT_LAST_BLD=" + cities_arr[k].num_bldgs_last);
 					
-					city_list[k].time_nuked = time_sec();
+					cities_arr[k].time_nuked = time_sec();
 				}
-				if ( (city_list[k].time_nuked >= 0) && (time_sec() - city_list[k].time_nuked < FALLOUT_TIME_SECS) ) {
-					damage_all_in_city(city_list[k], DAMAGE_PCT_PER_CYCLE, FALLOUT_EFFECT_RADIUS);
-				}
-				if ( city_list[k].time_nuked >= 0 && (time_sec() - city_list[k].time_nuked > FALLOUT_TIME_SECS)) {
-					city_list[k].time_nuked = -1;
-					print_game_msg(city_list[k].name + " is now safe to enter!");
-				}
+			}
+			
+			/* Handle fallout effect timing */
+			if ( (cities_arr[k].time_nuked >= 0) && (time_sec() - cities_arr[k].time_nuked < FALLOUT_TIME_SECS) ) {
+					damage_all_in_city(cities_arr[k], DAMAGE_PCT_PER_CYCLE, FALLOUT_EFFECT_RADIUS);
+			} else if ( cities_arr[k].time_nuked >= 0 && (time_sec() - cities_arr[k].time_nuked > FALLOUT_TIME_SECS)) {
+				cities_arr[k].time_nuked = -1;
+				print_game_msg(cities_arr[k].name + " is now safe to enter!");
 			}
 		}
 		
-		for (int l = 0; l < city_list.length; l++) {
-			city_list[l].last_hp = city_list[l].hp;
-			city_list[l].num_bldgs_last = city_list[l].num_bldgs;
+		for (int x = 0; x < GLOBAL_ARR_COUNT; x++) {
+			cities_arr[x].last_hp = cities_arr[x].hp;
+			cities_arr[x].num_bldgs_last = cities_arr[x].num_bldgs;
 		}
 	}
 }
-// Give money to these people -> https://www.artsbusinesscollaborative.org/asp-products/black-trans-protestors-emergency-fund/
+
+// ACAB
