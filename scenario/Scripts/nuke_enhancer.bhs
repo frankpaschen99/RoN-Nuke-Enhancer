@@ -30,13 +30,12 @@ labels {
 	// ** probably best to not touch these below ** //
 	
 	// The %HP a building has to lose in one cycle for the nuke detection system to activate. If it loses less than this value, a nuclear attack will not be considered possible. Default = 30
-	// Higher values will result is more false negatives, lower values will result in more false positives
 	HEALTH_DIFF_THRESHOLD = 30,
 	// How often nukes are checked for, and damage is dealt to irradiated units. Determines one "cycle". Default = 3 seconds
 	NUKE_WATCH_TIMER_DURATION = 1,
 	
 	
-	VERSION = "1.1.4_DEV"
+	VERSION = "1.2.1"
 }
 
 scenario {	
@@ -61,7 +60,7 @@ scenario {
 	static global_arr_count = 0;
 	run_once {
 		set_game_msg_color("GREEN");
-		print_game_msg("Frankie's Nuke Enhancement Script [v" + VERSION + "] is running! Standing by for Modern Age...");
+		print_game_msg("Frankie's Nuke Enhancement Script [v" + VERSION + "] is running! Waiting for Modern Age...");
 		/* Disable ICBMs and conventional missiles */
 		disable_type("Nuclear ICBM");
 		disable_type("V2 Rocket");
@@ -80,6 +79,8 @@ scenario {
 						print_game_msg("Rechecked attacked city of " + cities_arr[i].name + 
 						". New probability: " + prob + "%)! Nuclear fallout is now in effect!");
 					}
+					print_game_msg("Nation #" + cities_arr[i].nation + "'s City of " + cities_arr[i].name + " has been attacked with a nuclear weapon (Confidence " + prob + "%)! Nuclear fallout is now in effect!");
+					
 					cities_arr[i].time_nuked = time_sec();
 					cities_arr[i].last_conf = -999;
 				} else {

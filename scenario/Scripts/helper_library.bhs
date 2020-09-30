@@ -213,7 +213,7 @@ float scenario was_nuked(City c, ref int rechecking, ref int conf, int h, bool d
 	if (num_bldgs_lost < 3 && !rechecking) {
 		set_timer("city_recheck_timer", 2);
 		rechecking = true;
-		return -1.0;
+		return -100.0;
 	}
 	return probability;
 }
