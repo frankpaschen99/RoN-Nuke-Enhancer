@@ -3,7 +3,6 @@
 labels {
 	
 }
-
 struct City
 {
   int nation;
@@ -15,15 +14,11 @@ struct City
   int num_bldgs_last;
   int num_bldgs;
   int uid;
+  int rechecking;
+  int last_conf;
 };
 
-// this almost certainly works
-void scenario array_push(ref City[] arr, ref int index, City c) {
-	arr[index] = c;
-	index = index + 1;
-}
-
-// this almost certainly works 
+/* update the existing fields of a city in the array */
 void scenario update_array(ref City[] arr, int index, City data) {
 	arr[index].name = data.name;
 	arr[index].nation = data.nation;
@@ -32,29 +27,30 @@ void scenario update_array(ref City[] arr, int index, City data) {
 	arr[index].num_bldgs = data.num_bldgs;
 }
 
-// this almost certainly works - issue was with g_index in add_city passing by value, 
-// meaning array_push was never actually incrementing the index counter
+/* return the index of a city in an array */
 int scenario get_city_index(ref City[] arr, City data) {
 	for (int i = 0; i < arr.length; i++) {
-		if ((arr[i].id == data.id) && (arr[i].nation == data.nation)) {
+		if ((arr[i].name == data.name) && (arr[i].nation == data.nation)) {
 			return i;
 		}
 	}
 	return -1;	// failed
 }
 
+/* add or update a city */
 void scenario add_city(ref City[] arr, City data, ref int g_index) {
-	int index = get_city_index(arr, data);
+	int index = get_city_index(arr, data);	// check if city already exists
 	
 	// update city if it exists
 	if (index >= 0) {
 		update_array(arr, index, data);
 	} else {
-		// TODO this is new code
-		array_push(arr, g_index, data);
+		arr[g_index] = data;
+		g_index = g_index + 1;
 	}
 }
 
+/* damage all buildings belonging to a city by dmg_percent, and all /units/ in radius dmg_radius by dmg_percent */
 void scenario damage_all_in_city(City c, int dmg_percent, int dmg_radius) {
 	set_object_health(c.nation, c.id, 1);	// keep city at 1% health for duration
 
@@ -72,7 +68,7 @@ void scenario damage_all_in_city(City c, int dmg_percent, int dmg_radius) {
 		for (int j = 0; j < num_units(i); j++) {
 			int unit_id = find_all_unit(i, "");
 			if (object_near_build(i, unit_id, c.nation, c.id, dmg_radius)) {
-				if (object_health(i, unit_id) <= 20) {	// preserve death animations
+				if (object_health(i, unit_id) <= 20) {	// preserve death animations if possible
 					kill_unit_anim(i, unit_id, 2);
 				} else {
 					damage_object(i, unit_id, dmg_percent);
@@ -82,6 +78,7 @@ void scenario damage_all_in_city(City c, int dmg_percent, int dmg_radius) {
 	}
 }
 
+/* return total number of buildings in a given city */
 int scenario num_buildings_in_city(City c) {
 	int first = find_build_at_city(c.nation, c.name, "", 1); // call it once to skip the city and to start looping at the 2nd building
 	int cur_bldg = 0;
@@ -96,67 +93,127 @@ int scenario num_buildings_in_city(City c) {
 	return count;
 }
 
+/* has a city lost at least h health since last cycle? */
 int scenario was_damaged(City c, int h) {
 	if ((c.last_hp > c.hp) && (c.last_hp - c.hp) > h) {
 		return 1;
 	}
 	return -1;
 }
-
-// future: maybe also check for num units in city lost? citizens, enemy/friendly military, etc.
-// maybe as a proportion? like >70% lost is more probably a nuke
-float scenario was_nuked(City c, int h) {
+/* this is where the magic happens. this code is fucking horrible */
+float scenario was_nuked(City c, ref int rechecking, ref int conf, int h, bool debug) {
 	float probability = 50;
-		
+	int cur_bldgs = num_buildings_in_city(c);
+	int num_bldgs_lost = c.num_bldgs_last - cur_bldgs;
+	
+	/* check if nation is at war with a potential NWS */
 	for (int i = 1; i < 9; i++) {
 		if (i != c.nation) {	// skip own nation
-			if (have_war(c.nation, i) && get_current_age(i) == 7) {
+			if (have_war(c.nation, i) && get_current_age(i) >= 6) {
 				probability += 8;
 				break;
 			}
 		}
 	}
-	c.num_bldgs = num_buildings_in_city(c);
-	int num_bldgs_lost = c.num_bldgs_last - c.num_bldgs;
+
 	if (num_bldgs_lost > 0) {
-		probability += 3 * (num_bldgs_lost);
+		probability += 4 * (num_bldgs_lost);
+	}
+	/* for double checking building count */
+	if (conf != -999) {
+		return conf + probability;
 	}
 	
+	/* totals for special cases */
 	int hostile_count = 0;
+	int bomber_count = 0;
+	int battleship_count = 0;
+	int artillery_count = 0;
+	/* check for nearby hostile units and total them */
 	for (int k = 1; k < 9; k++) {
 		if (k != c.nation) {
-			// for every unit in that nation
-			for (int j = 0; j < num_units(k); j++) {
+			for (int j = 0; j < num_units(k); j++) {		
 				int unit_id = find_all_unit(k, "");
-				if (object_near_build(k, unit_id, c.nation, c.id, 20) && unit_category(k, unit_id) == "Artillery") {	// rocket artillery have an attack range of 16 tiles tiles 	
-					hostile_count++;
-					probability -= 2.5;
+				
+				if (object_near_build(k, unit_id, c.nation, c.id, 26) && unit_category(k, unit_id) == "Artillery") {
+					if (object_type(k, unit_id) == "Rocket Artillery" || object_type(c.nation, unit_id) == "Katyusha Rocket" || object_type(c.nation, unit_id) == "Howitzer") {
+						hostile_count++;
+						artillery_count++;	
+					} else {
+						hostile_count++;
+						probability -= 1.0;
+					}
 				}
-				if (object_near_build(k, unit_id, c.nation, c.id, 30) && unit_category(k, unit_id) == "Naval") {	// advanced battleships have an attack range of 26 tiles
-					probability -= 2;
-					hostile_count++;
+
+				if (object_near_build(k, unit_id, c.nation, c.id, 27) && unit_category(k, unit_id) == "Naval") {
+					if (object_type(k, unit_id) == "Advanced Battleship" || object_type(c.nation, unit_id) == "Battleship") {
+						hostile_count++;
+						battleship_count++;	
+					} else {
+						probability -= 1.2;
+						hostile_count++;
+					}
 				} 
-				if (object_near_build(k, unit_id, c.nation, c.id, 20) && unit_category(k, unit_id) == "Air") {
-					probability -= 2;
-					hostile_count++;
+				if (object_near_build(k, unit_id, c.nation, c.id, 10) && unit_category(k, unit_id) == "Air") {
+					if (object_type(k, unit_id) == "Stealth Bomber" || object_type(c.nation, unit_id) == "Strategic Bomber" || object_type(c.nation, unit_id) == "Lancaster Bomber") {
+						hostile_count++;
+						bomber_count++;	
+					} else {
+						probability -= 1.5;
+						hostile_count++;
+					}
 				}
 				if (object_near_build(k, unit_id, c.nation, c.id, 20) && unit_category(k, unit_id) == "Foot") {
-					probability -= 0.5;
+					probability -= 0.2;
 					hostile_count++;
 				}
-			}
+			} // end inner loop
 		}
+	} // end outer loop
+	
+	/* Special cases */
+	if (bomber_count >= 4) {
+		probability -= 12;
+	} else {
+		probability -= 2 * bomber_count;
+	}
+	if (artillery_count >= 5) {
+		probability -= 10;
+	} else {
+		probability -= 2 * artillery_count;
+	}
+	if (battleship_count >= 3) {
+		probability -= 10;
+	} else {
+		probability -= 2 * battleship_count;
 	}
 	if (hostile_count == 0) {
 		probability += 40;
 	}
-	
-	if (probability > 100) {
-		probability = 100;
-	} else if (probability < 0) {
-		probability = 0;
+	if ((battleship_count + bomber_count + artillery_count) > 6 && num_bldgs_lost <= 2 && num_bldgs_lost > 0) {
+		probability -= 10;
 	}
-	print_game_msg("[DEBUG] City of " + c.name + " was attacked! Nuke probability: " + probability + "%!");
-	return probability;
+	if (num_bldgs_lost == cur_bldgs) {
+		probability += 40;
+	}
+	if (num_bldgs_lost == 0) {
+		probability -= 25;
+	}
 	
+	/* debug prints */
+	if (debug == true)  {
+		print_game_msg("[DEBUG] CIT_NAME=" + c.name + "|CIT_ID=" + c.id + "|CIT_HPCUR=" + c.hp + "|CIT_HPLAST="
+		+ c.last_hp + "|CIT_NUM_BLD=" + c.num_bldgs + " |CIT_LAST_BLD=" + c.num_bldgs_last
+		+ "|NUM_BLD_LOST=" + num_bldgs_lost
+		+ "|HOST_CT=" + hostile_count + "|BMBR_CT=" + bomber_count + "|SHP_CT=" + battleship_count + "|ART_CT=" + artillery_count
+		+ "|NUKE%=" + probability);
+	}
+	
+	/* double check building count */
+	if (num_bldgs_lost < 3 && !rechecking) {
+		set_timer("city_recheck_timer", 2);
+		rechecking = true;
+		return -1.0;
+	}
+	return probability;
 }

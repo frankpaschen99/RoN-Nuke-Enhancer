@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ROOT>
-	<INFO name="Fromkie's Nuke Enhancement" description="Description? Fuck you" version="1.0.1"/>
+	<INFO name="Frankie's Nuke Enhancement" description="Description? Fuck you" version="1.0.1"/>
 	<FILES size="644134" checksum="-607322935" complete="1"><FILE path="data" size="0" directory="1"/><FILE path="scenario" size="0" directory="1"/><FILE path="scenario\Scripts" size="0" directory="1"/><FILE path="scenario\Scripts\helper_library.bhs" size="3198" directory="0"/><FILE path="scenario\Scripts\nuke_enhancer.bhs" size="5392" directory="0"/><FILE path="data\unitrules.xml" size="635544" directory="0"/></FILES></ROOT>
