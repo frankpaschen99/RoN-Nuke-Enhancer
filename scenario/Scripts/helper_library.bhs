@@ -193,12 +193,12 @@ float scenario was_nuked(City c, ref int rechecking, ref int conf, int h, bool d
 	if ((battleship_count + bomber_count + artillery_count) > 6 && num_bldgs_lost <= 2 && num_bldgs_lost > 0) {
 		probability -= 10;
 	}
-	if (num_bldgs_lost == cur_bldgs) {
-		probability += 40;
-	}
 	if (num_bldgs_lost == 0) {
 		probability -= 25;
+	} else if (num_bldgs_lost == cur_bldgs) {
+		probability += 40;
 	}
+	
 	
 	/* debug prints */
 	if (debug == true)  {
