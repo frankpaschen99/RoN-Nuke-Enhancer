@@ -174,16 +174,19 @@ float scenario was_nuked(City c, ref int rechecking, ref int conf, int h, bool d
 	/* Special cases */
 	if (bomber_count >= 4) {
 		probability -= 12;
+		probability -= 2 * (bomber_count - 4);
 	} else {
 		probability -= 2 * bomber_count;
 	}
 	if (artillery_count >= 5) {
 		probability -= 10;
+		probability -= 2 * (artillery_count - 5);
 	} else {
 		probability -= 2 * artillery_count;
 	}
 	if (battleship_count >= 3) {
 		probability -= 10;
+		probability -= 2 * (battleship_count - 3);
 	} else {
 		probability -= 2 * battleship_count;
 	}
